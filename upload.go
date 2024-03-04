@@ -26,6 +26,9 @@ type RetentionConfig struct {
 	Time time.Time
 }
 type S3 struct {
+	// AWSConfig Specifically use to pass the file location
+	// of credentials and config. Ignore if the variables are
+	// already provided to the environment
 	AWSConfig       *Config
 	BucketName      string
 	RetentionConfig *RetentionConfig
