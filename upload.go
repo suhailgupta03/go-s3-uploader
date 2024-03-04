@@ -1,4 +1,4 @@
-package main
+package S3Uploader
 
 import (
 	"bytes"
@@ -50,6 +50,7 @@ func generateRandomString(numBytes int) (*string, error) {
 	return &randomString, nil
 }
 
+// bucketExists checks for the existence of the bucket.
 func (s3 *S3) bucketExists() (bool, error) {
 	_, err := s3.client.HeadBucket(context.TODO(), &awss3.HeadBucketInput{
 		Bucket: aws.String(s3.BucketName),
@@ -69,6 +70,7 @@ func (s3 *S3) bucketExists() (bool, error) {
 		}
 	} else {
 		s3.Lo.Info("Bucket exists and you already own it.", "bucket", s3.BucketName)
+		err = nil
 	}
 
 	return exists, err
@@ -89,6 +91,7 @@ func (s3 *S3) createBucket() error {
 	})
 	if err != nil {
 		s3.Lo.Error("Couldn't create bucket in Region", "bucket", s3.BucketName, "error", err)
+		return err
 	}
 
 	if s3.RetentionConfig != nil {
@@ -113,13 +116,17 @@ func (s3 *S3) UploadFile(data []byte, identifier string) (*UploadId, error) {
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
+	s3.loadedConfig = cfg
 	if err != nil {
 		s3.Lo.Error("Error loading AWS config", "error", err)
 		return nil, err
 	}
 	client := awss3.NewFromConfig(cfg)
 	s3.client = client
-	bucketExists, _ := s3.bucketExists()
+	bucketExists, err := s3.bucketExists()
+	if err != nil {
+		return nil, err
+	}
 	if !bucketExists {
 		err := s3.createBucket()
 		if err != nil {
@@ -129,7 +136,7 @@ func (s3 *S3) UploadFile(data []byte, identifier string) (*UploadId, error) {
 	}
 
 	randomString, _ := generateRandomString(6)
-	uploadKey := *randomString + identifier
+	uploadKey := *randomString + ":" + identifier
 	uploadId := UploadId(uploadKey)
 	_, err = client.PutObject(context.TODO(), &awss3.PutObjectInput{
 		Bucket: aws.String(s3.BucketName),
