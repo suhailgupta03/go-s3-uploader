@@ -1,5 +1,10 @@
 Simple go library for uploading to S3. Enables auto bucket creation.
 
+# Install
+```shell
+go get -u github.com/suhailgupta03/go-s3-uploader@latest
+```
+# Example
 ```go
 package main
 
